@@ -45,6 +45,7 @@ import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 
 import com.geecko.QuickLyric.App;
+import com.geecko.QuickLyric.MainActivity;
 import com.geecko.QuickLyric.broadcastReceiver.MusicBroadcastReceiver;
 import com.geecko.QuickLyric.fragment.LyricsViewFragment;
 import com.geecko.QuickLyric.utils.MediaControllerCallback;
@@ -115,8 +116,9 @@ public class NotificationListenerService extends android.service.notification.No
     @Override
     public void onListenerConnected() {
         super.onListenerConnected();
-        Intent intent = new Intent("com.geecko.QuickLyric.NLS_CONNECTED");
-        sendBroadcast(intent);
+        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getApplicationContext().startActivity(intent);
         MusicBroadcastReceiver.disableBroadcastReceiver(this);
     }
 

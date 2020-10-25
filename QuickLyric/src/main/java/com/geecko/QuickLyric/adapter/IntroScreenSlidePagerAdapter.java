@@ -6,10 +6,9 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Fragment;
-import android.content.BroadcastReceiver;
+import android.app.UiModeManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -38,6 +37,7 @@ import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -79,6 +79,7 @@ import static android.support.v4.widget.DrawerLayout.LOCK_MODE_UNLOCKED;
 
 public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter implements ViewPager.OnPageChangeListener {
     public boolean rightToLeft = false;
+    public boolean isTvLayout = false;
     private Integer[] colors = new Integer[]{
             R.color.accent_dark,
             R.color.bright_yellow,
@@ -212,6 +213,7 @@ public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter impl
     public IntroScreenSlidePagerAdapter(final Activity activity) {
         super(activity.getFragmentManager());
         this.mActivity = activity;
+
         mPager = mActivity.findViewById(R.id.pager);
         mPager.setOnTouchListener(exitTouchListener);
         if (Build.VERSION.SDK_INT >= 17)
@@ -221,6 +223,12 @@ public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter impl
             Collections.reverse(list);
             colors = (Integer[]) list.toArray();
         }
+
+        UiModeManager uiModeManager = (UiModeManager) mActivity.getSystemService(Context.UI_MODE_SERVICE);
+        if (uiModeManager != null) {
+            isTvLayout = uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
+        }
+
         ImageButton pagerArrow = mActivity.findViewById(R.id.pager_arrow);
         Button okButton = mActivity.findViewById(R.id.pager_ok);
         okButton.setOnClickListener(v -> {
@@ -366,6 +374,17 @@ public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter impl
             }
             pagerArrow.setVisibility(View.GONE);
             okButton.setVisibility(View.VISIBLE);
+            // Set the directional navigation for TVs. It is not possible to do it in XML because
+            // from tutorial4 we cannot access to pager_ok and vice versa
+            if (isTvLayout) {
+                LinearLayout link = mActivity.findViewById(R.id.NL_frame);
+                link.requestFocus();
+                link.setNextFocusDownId(R.id.pager_ok);
+                okButton.setNextFocusUpId(R.id.NL_frame);
+                okButton.setNextFocusDownId(R.id.NL_frame);
+                pagerButton.setNextFocusUpId(R.id.NL_frame);
+                pagerButton.setNextFocusDownId(R.id.NL_frame);
+            }
         } else {
             pagerButton.setText(R.string.skip);
             pagerButton.setEnabled(true);
@@ -481,11 +500,17 @@ public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter impl
         static boolean buttonClicked = false;
         static boolean autostartEnabled = false;
         private boolean floatingEnabledDefault;
+        private boolean isTvLayout;
 
         @SuppressLint("NewApi")
         @Override
         public View onCreateView(final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
             View layout = inflater.inflate(R.layout.tutorial_4, container, false);
+
+            UiModeManager uiModeManager = (UiModeManager) getActivity().getSystemService(Context.UI_MODE_SERVICE);
+            if (uiModeManager != null) {
+                isTvLayout = uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
+            }
 
             TextView link = layout.findViewById(R.id.NL_link);
             View floatingFrame = layout.findViewById(R.id.floating_frame);
@@ -496,22 +521,16 @@ public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter impl
                         Toast.makeText(getActivity(), getString(R.string.miui_autostart, Build.BRAND), Toast.LENGTH_LONG).show();
                         autostartEnabled = true;
                     } else {
-                        startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
-                        Toast.makeText(getActivity(), R.string.nls_enable_prompt, Toast.LENGTH_LONG).show();
+                        // android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS doesn't work in TVs. It is needed
+                        // to call the apps settings and do it manually.
+                        if (!isTvLayout) {
+                            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                            Toast.makeText(getActivity(), R.string.nls_enable_prompt, Toast.LENGTH_LONG).show();
+                        } else {
+                            startActivity(new Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
+                            Toast.makeText(getActivity(), R.string.tv_nls_enable_prompt, Toast.LENGTH_LONG).show();
+                        }
                         MainActivity.waitingForListener = true;
-                        final BroadcastReceiver nlsReceiver = new BroadcastReceiver() {
-                            @Override
-                            public void onReceive(Context context, Intent intent) {
-                                if (context != null) {
-                                    intent = new Intent(context, MainActivity.class);
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                    context.startActivity(intent);
-                                    context.unregisterReceiver(this);
-                                }
-                            }
-                        };
-                        final IntentFilter iFilter = new IntentFilter("com.geecko.QuickLyric.NLS_CONNECTED");
-                        layout.getContext().registerReceiver(nlsReceiver, iFilter);
                         buttonClicked = true;
                     }
                     SharedPreferences prefs = getActivity().getSharedPreferences("intro_slides", Context.MODE_PRIVATE);
@@ -552,6 +571,7 @@ public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter impl
         @Override
         public void onResume() {
             super.onResume();
+
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
                 return;
             boolean floatingEnabled = PreferenceManager.getDefaultSharedPreferences(getActivity()).getBoolean("pref_overlay", floatingEnabledDefault);
@@ -573,9 +593,10 @@ public class IntroScreenSlidePagerAdapter extends FragmentStatePagerAdapter impl
 
             ViewGroup frame = layout.findViewById(R.id.NL_frame);
             View floatingFrame = layout.findViewById(R.id.floating_frame);
-            floatingFrame.setVisibility(nlEnabled && !shouldHideFloatingFrame ? View.VISIBLE : isLandscape ? View.GONE : View.INVISIBLE);
+            // ACTION_MANAGE_OVERLAY_PERMISSION is not available for TVs, so hide the switch in order to avoid the user enables it
+            floatingFrame.setVisibility(nlEnabled && !shouldHideFloatingFrame && !isTvLayout ? View.VISIBLE : isLandscape ? View.GONE : View.INVISIBLE);
             if (frame != null) {
-                frame.setVisibility(isLandscape && nlEnabled ? View.INVISIBLE : View.VISIBLE);
+                frame.setVisibility(isLandscape && nlEnabled && !isTvLayout ? View.INVISIBLE : View.VISIBLE);
                 RelativeLayout.LayoutParams frameParams = (RelativeLayout.LayoutParams) frame.getLayoutParams();
 
                 frameParams.removeRule(RelativeLayout.ALIGN_PARENT_BOTTOM);

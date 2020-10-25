@@ -137,6 +137,7 @@
                     android:textColor="?android:attr/textColorPrimaryInverse"
                     android:layout_weight="1"
                     android:textStyle="bold"/>
+
                 <android.support.v7.widget.SwitchCompat
                     android:id="@+id/floating_switch"
                     android:clickable="false"
@@ -172,7 +173,6 @@
                     android:textAppearance="?android:attr/textAppearanceMediumInverse"
                     android:textColor="?android:attr/textColorPrimaryInverse"
                     android:textStyle="bold"/>
-
 
                 <android.support.v7.widget.SwitchCompat
                     android:id="@+id/NL_switch"

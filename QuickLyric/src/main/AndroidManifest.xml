@@ -12,6 +12,11 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" tools:node="remove"/>
     <uses-permission android:name="com.android.vending.BILLING"/>
 
+    <!-- This app runs on mobile as well as Android TV, so set the required attribute value to false.
+    If the required attribute value is true, the app will run only on devices that use the Leanback UI -->
+    <uses-feature android:name="android.software.leanback"
+        android:required="false" />
+
     <uses-feature
         android:name="android.hardware.nfc"
         android:required="false"/>
@@ -48,8 +53,8 @@
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
-
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED"/>

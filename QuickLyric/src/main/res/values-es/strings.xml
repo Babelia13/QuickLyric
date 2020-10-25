@@ -201,6 +201,7 @@ Te agradecemos por entender! <br/><br/>
   <string name="bad_xp_msg">¿Todo bien?</string>
   <string name="bad_xp_btn">Pedir ayuda</string>
   <string name="nls_enable_prompt">Por favor, seleccione QuickLyric en esta lista</string>
+  <string name="tv_nls_enable_prompt">Por favor, vaya a \'Acceso especial de aplicaciones/Acceso a notificaciones\' y seleccione QuickLyric en la lista</string>
   <string name="yes">sí</string>
   <string name="no">no</string>
   <string name="good_xp_prompt_msg">¿Te gusta QuickLyric?</string>
